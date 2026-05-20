@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    telegram_channel_id: str = os.getenv("TELEGRAM_CHANNEL_ID", "")
     telegram_admin_chat_id: str = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
     
     eth_collector_wallet: str = os.getenv("ETH_COLLECTOR_WALLET", "")
@@ -47,12 +48,10 @@ class Settings(BaseSettings):
     domain: str = os.getenv("DOMAIN", "")
     debug: bool = False
     
-    # القيم التي كانت تسبب الخطأ (تم وضع قيم افتراضية)
     min_score: int = 4
     min_confidence: int = 58
 
     class Config:
-        # لا نحدد ملف .env هنا لنعتمد كلياً على بيئة النظام
         case_sensitive = True
 
 def get_settings() -> Settings:
