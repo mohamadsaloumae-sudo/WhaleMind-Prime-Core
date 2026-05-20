@@ -1,5 +1,5 @@
-from services.ai_agent import get_ai_solution
 from __future__ import annotations
+from services.ai_agent import get_ai_solution
 import asyncio
 import logging
 from contextlib import asynccontextmanager
