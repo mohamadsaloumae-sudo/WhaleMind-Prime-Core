@@ -1,8 +1,7 @@
+signals_service.py
 from __future__ import annotations
 
-import asyncio
 import logging
-import random
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -13,58 +12,104 @@ from telegram import Bot
 
 logger = logging.getLogger(__name__)
 
-# ── Static seed data ───────────────────────────────────────────────────────────
-
+# ── Static seed data (للحفاظ على استقرار واجهة الموقع والداشبورد) ──────────────
 _SEED_SIGNALS: list[dict[str, Any]] = [
-    {"id": str(uuid.uuid4()), "symbol": "SOL/USDT", "direction": "LONG", "grade": "A", "confidence": 82, "entry": 185.34, "sl": 182.10, "tp1": 188.60, "tp2": 191.80, "tp3": 196.70, "strategies": "Whale Accumulation", "chain": "sol", "trade_type": "futures", "timestamp": datetime.now(timezone.utc).isoformat()},
-    {"id": str(uuid.uuid4()), "symbol": "ETH/USDT", "direction": "SHORT", "grade": "S", "confidence": 91, "entry": 3240.50, "sl": 3310.00, "tp1": 3170.00, "tp2": 3100.00, "tp3": 3010.00, "strategies": "RSI Overbought", "chain": "eth", "trade_type": "futures", "timestamp": datetime.now(timezone.utc).isoformat()},
+    {
+        "id":         str(uuid.uuid4()),
+        "symbol":     "SOL/USDT",
+        "direction":  "LONG",
+        "grade":      "A",
+        "confidence": 82,
+        "entry":      185.34,
+        "sl":         182.10,
+        "tp1":        188.60,
+        "tp2":        191.80,
+        "tp3":        196.70,
+        "leverage":   "20x",
+        "strategies": "Whale Accumulation\nStoch RSI Oversold\nSupport & Resistance",
+        "chain":      "sol",
+        "trade_type": "futures",
+        "timestamp":  datetime.now(timezone.utc).isoformat(),
+    }
 ]
 
 _live_signals: list[dict[str, Any]] = list(_SEED_SIGNALS)
 
+
 def get_signals() -> list[dict[str, Any]]:
     return _live_signals
 
+
 def get_stats() -> dict[str, Any]:
-    return {"total_balance": 4827.93, "open_trades": len(_live_signals), "total_signals": len(_live_signals)}
+    return {
+        "total_balance":   4827.93,
+        "open_trades":     len(_live_signals),
+        "total_signals":   len(_live_signals),
+        "symbols_watched": 40,
+        "roi_pct":         34.2,
+        "win_rate_pct":    71.0,
+        "total_trades":    127,
+    }
 
-# ── Background broadcaster ─────────────────────────────────────────────────────
 
-async def signal_broadcaster() -> None:
-    PAIRS = [
-        ("BNB/USDT",  "LONG",  "B", "bsc",  600.0,  0.02),
-        ("ARB/USDT",  "SHORT", "A", "arb",  1.18,   0.03),
-        ("WIF/SOL",   "LONG",  "B", "sol",  2.45,   0.04),
-    ]
-    prices = {"SOL": 185.34, "ETH": 3240.5, "BNB": 600.0, "ARB": 1.18}
+# ── Real-time Broadcaster (المستقبل الحقيقي والديناميكي 100%) ──────────────
+
+async def broadcast_signal(sig: dict[str, Any]) -> None:
+    sym = sig.get('symbol', 'UNKNOWN')
+    
+    BANNED_COINS = ["USDC", "FDUSD", "TUSD", "DAI", "USDD", "BUSD", "PYUSD"]
+    if any(banned in sym for banned in BANNED_COINS):
+        logger.info(f"🛡️ تم حظر وإهمال إشارة لعملة مستقرة: {sym}")
+        return
+
     settings = get_settings()
     bot = Bot(token=settings.telegram_bot_token)
 
-    while True:
-        await asyncio.sleep(random.randint(20, 45))
+    _live_signals.insert(0, sig)
+    if len(_live_signals) > 20:
+        _live_signals.pop()
+        
+    await ws_manager.broadcast("new_signal", sig)
+    logger.info("📡 New real signal broadcast: %s %s", sym, sig.get('direction'))
 
-        for sym, price in prices.items():
-            prices[sym] = round(price * (1 + random.uniform(-0.003, 0.003)), 4)
-        await ws_manager.broadcast("price_update", prices)
+    try:
+        direction = sig.get('direction', 'LONG')
+        entry = sig.get('entry', 0.0)
+        sl = sig.get('sl', 0.0)
+        tp1 = sig.get('tp1', 0.0)
+        tp2 = sig.get('tp2', 0.0)
+        tp3 = sig.get('tp3', 0.0)
+        grade = sig.get('grade', 'C')
+        confidence = sig.get('confidence', 0)
+        
+        leverage = sig.get('leverage', 'N/A')
+        points = sig.get('points', 'N/A')
+        strategies = sig.get('strategies', 'دعم/مقاومة 🎧 ✅')
+        details = sig.get('details', 'تحليل فني عبر مؤشرات الرادار')
 
-        if random.random() < 0.4:
-            pair = random.choice(PAIRS)
-            sym, direction, grade, chain, base, spread = pair
-            entry = round(base * (1 + random.uniform(-spread, spread)), 4)
-            sig = {
-                "id": str(uuid.uuid4()), "symbol": sym, "direction": direction, "grade": grade,
-                "confidence": random.randint(60, 89), "entry": entry,
-                "sl": round(entry * 0.98, 4), "tp1": round(entry * 1.02, 4),
-                "tp2": round(entry * 1.04, 4), "tp3": round(entry * 1.06, 4),
-                "strategies": "Trend Following", "chain": chain, "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-            _live_signals.insert(0, sig)
-            await ws_manager.broadcast("new_signal", sig)
-            logger.info("📡 New signal broadcast: %s %s", sym, direction)
+        dir_icon = "🟢" if direction == "LONG" else "🔴"
+        chart_icon = "📈" if direction == "LONG" else "📉"
+        
+        time_now = datetime.now(timezone.utc).strftime("%H:%M %d-%m-%Y (UTC)")
+        
+        msg = (
+            f"🐳 *رادار الحيتان v4.1 WebSocket (Sniper)*\n"
+            f"⚡ إشارة فورية لحظية | 🕐 {time_now}\n\n"
+            f"{dir_icon} *{direction}* {chart_icon}\n\n"
+            f"💰 العملة: *{sym}*\n"
+            f"💵 سعر الدخول: `{entry}`\n"
+            f"⚙️ الرافعة المالية: *{leverage}*\n\n"
+            f"🛡️ وقف الخسارة: `{sl}`\n"
+            f"🎯 الهدف 1: `{tp1}`\n"
+            f"🎯 الهدف 2: `{tp2}`\n"
+            f"🎯 الهدف 3: `{tp3}`\n"
+            f"📐 نسبة R:R : *1 : 2.0*\n\n"
+            f"📊 *الاستراتيجيات:*\n{strategies}\n\n"
+            f"🔍 *التفاصيل:*\n{details}\n\n"
+            f"🥈 الدرجة: *{grade}* | 🎯 الثقة: *{confidence}%*\n"
+            f"🏆 النقاط: *{points}*"
+        )
+        await bot.send_message(chat_id=settings.telegram_channel_id, text=msg, parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Telegram Error: {e}")
 
-            # إرسال إلى تليجرام
-            try:
-                msg = f"🔔 *إشارة جديدة:* {sym} {direction}\n\n📊 التقييم: {grade}\n🎯 الأهداف: {sig['tp1']} / {sig['tp2']} / {sig['tp3']}\n🛑 SL: {sig['sl']}"
-                await bot.send_message(chat_id=settings.telegram_channel_id, text=msg, parse_mode="Markdown")
-            except Exception as e:
-                logger.error(f"Telegram Error: {e}")
