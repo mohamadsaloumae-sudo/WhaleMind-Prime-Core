@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WhaleX — Admin Control Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08090d;--bg2:#0d0f17;--bg3:#111420;--surface:#141828;--card:#181d2e;--card2:#1e2438;--border:#232b42;--border2:#2d3a58;--neon:#00e5ff;--neon2:#00b8d4;--ai:#7c3aff;--green:#00e676;--red:#ff1744;--gold:#ffd600;--orange:#ff6d00;--text:#e2e8f8;--text2:#8896b0;--text3:#3d4f70;--sw:240px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;display:flex;min-height:100vh;overflow-x:hidden}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lc{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:40px;width:400px;text-align:center}
+.lc-mark{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--neon2),var(--ai));margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:22px;font-weight:800;color:#000}
+.lc-title{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(90deg,var(--neon),var(--ai));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.lc-sub{font-size:12px;color:var(--text3);margin-bottom:28px}
+.lc-err{background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.25);border-radius:8px;padding:10px;font-size:13px;color:var(--red);margin-bottom:14px;display:none}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s;margin-bottom:10px}
+.fi:focus{border-color:var(--neon)}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sb-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--neon2),var(--ai));display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:800;color:#000;flex-shrink:0}
+.sb-name{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:800;background:linear-gradient(90deg,var(--neon),var(--ai));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-ver{font-size:10px;color:var(--text3)}
+.sb-nav{flex:1;padding:8px 0;overflow-y:auto;scrollbar-width:none}
+.sb-nav::-webkit-scrollbar{display:none}
+.sb-sec{padding:12px 16px 4px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.si{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;border-right:2px solid transparent;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;user-select:none}
+.si:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.si.active{background:rgba(0,229,255,.06);color:var(--neon);border-right-color:var(--neon)}
+.si-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--red);color:#fff;min-width:20px;text-align:center}
+.si-badge.pro{background:var(--ai)}
+.sb-foot{padding:14px 16px;border-top:1px solid var(--border)}
+.admin-chip{display:flex;align-items:center;gap:8px;background:rgba(124,58,255,.08);border:1px solid rgba(124,58,255,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.admin-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--ai),var(--neon2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 26px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-title{font-family:'Orbitron',sans-serif;font-size:15px;font-weight:700}
+.tb-bc{font-size:12px;color:var(--text3)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.ws-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);color:var(--green)}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:26px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+
+/* ── STAT CARDS ── */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.sg-3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1100px){.sg{grid-template-columns:repeat(2,1fr)}}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s}
+.sc:hover{border-color:var(--border2)}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.cn::after{background:linear-gradient(90deg,transparent,var(--neon),transparent)}
+.cg::after{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.ca::after{background:linear-gradient(90deg,transparent,var(--ai),transparent)}
+.cgo::after{background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.cr::after{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.co::after{background:linear-gradient(90deg,transparent,var(--orange),transparent)}
+.sc-l{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+.sc-v{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;margin-bottom:3px;letter-spacing:-1px}
+.sc-s{font-size:11px;color:var(--text2)}
+.sc-i{position:absolute;top:14px;right:14px;opacity:.07}
+
+/* ── TABLE CARD ── */
+.tc{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.tc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.tc-title{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px}
+.tc-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:0 11px}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;padding:7px 0;width:170px;font-family:'Inter',sans-serif}
+.search-box input::placeholder{color:var(--text3)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--bg3)}
+th{padding:9px 15px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 15px;border-bottom:1px solid rgba(35,43,66,.5);vertical-align:middle;font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)}
+.uid{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.uid:hover{color:var(--neon)}
+
+/* ── BADGES ── */
+.b{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.b-pro{background:rgba(124,58,255,.15);color:var(--ai);border:1px solid rgba(124,58,255,.3)}
+.b-free{background:rgba(136,150,176,.08);color:var(--text2);border:1px solid var(--border)}
+.b-active{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.25)}
+.b-banned{background:rgba(255,23,68,.12);color:var(--red);border:1px solid rgba(255,23,68,.3)}
+.b-admin{background:rgba(0,229,255,.1);color:var(--neon);border:1px solid rgba(0,229,255,.25)}
+.b-long{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.b-short{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.2)}
+.b-confirmed{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.b-pending{background:rgba(255,214,0,.1);color:var(--gold);border:1px solid rgba(255,214,0,.2)}
+.b-failed{background:rgba(255,23,68,.1);color:var(--red);border:1px solid rgba(255,23,68,.2)}
+.b-s{background:rgba(255,214,0,.15);color:var(--gold);border:1px solid rgba(255,214,0,.4)}
+.b-a{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.b-b{background:rgba(0,229,255,.1);color:var(--neon);border:1px solid rgba(0,229,255,.3)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap}
+.btn:active{transform:scale(.95)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:linear-gradient(135deg,var(--neon2),var(--ai));color:#fff;box-shadow:0 2px 12px rgba(0,229,255,.15)}
+.btn-d{background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.3);color:var(--red)}
+.btn-d:hover{background:rgba(255,23,68,.2)}
+.btn-s{background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);color:var(--green)}
+.btn-g{background:var(--card2);border:1px solid var(--border);color:var(--text2)}
+.btn-go{background:rgba(255,214,0,.12);border:1px solid rgba(255,214,0,.3);color:var(--gold)}
+.btn-ai{background:rgba(124,58,255,.15);border:1px solid rgba(124,58,255,.3);color:var(--ai)}
+.sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.xs{padding:3px 7px;font-size:10px;border-radius:5px}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center}
+.mo.open{display:flex}
+.mo-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:26px;width:460px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mo-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:var(--neon);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.mo-foot{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.fl{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.5px}
+.finput,.fselect{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:14px;outline:none;font-family:'JetBrains Mono',monospace;transition:border-color .2s;margin-bottom:12px}
+.finput:focus,.fselect:focus{border-color:var(--neon)}
+.fselect{font-family:'Inter',sans-serif;cursor:pointer}
+.fselect option{background:var(--surface)}
+
+/* ── TOAST ── */
+#toast-wrap{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:tin .25s ease;display:flex;align-items:center;gap:8px}
+@keyframes tin{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast.ok{border-color:rgba(0,230,118,.3);color:var(--green)}
+.toast.err{border-color:rgba(255,23,68,.3);color:var(--red)}
+.toast.info{border-color:rgba(0,229,255,.3);color:var(--neon)}
+.toast.warn{border-color:rgba(255,214,0,.3);color:var(--gold)}
+
+/* ── FILTER CHIPS ── */
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .15s;user-select:none}
+.chip:hover{border-color:var(--border2);color:var(--text)}
+.chip.active{border-color:var(--neon);color:var(--neon);background:rgba(0,229,255,.06)}
+
+/* ── PAGINATION ── */
+.pag{display:flex;align-items:center;gap:5px;padding:12px 18px;border-top:1px solid var(--border);justify-content:flex-end}
+.pag-btn{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all .15s}
+.pag-btn:hover,.pag-btn.act{background:rgba(0,229,255,.08);border-color:var(--neon);color:var(--neon)}
+.pag-info{font-size:11px;color:var(--text3);margin-right:6px}
+
+/* ── SIGNAL CARD ── */
+.sig-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.sig-item:hover{border-color:var(--border2)}
+.sig-grade{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:800;flex-shrink:0}
+.sig-info{flex:1}
+.sig-sym{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700}
+.sig-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.conf-bar{width:80px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--neon),var(--green))}
+
+/* ── AUDIT ── */
+.audit-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid rgba(35,43,66,.4)}
+.audit-item:last-child{border-bottom:none}
+.audit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.audit-act{font-weight:600;font-size:13px;margin-bottom:2px}
+.audit-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sh-t{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+/* ── EMPTY ── */
+.empty{padding:36px;text-align:center;color:var(--text3);font-size:13px}
+
+/* ── INFO BOX ── */
+.info-box{background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.15);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+.warn-box{background:rgba(255,214,0,.05);border:1px solid rgba(255,214,0,.15);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+
+/* ── SETTINGS ── */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(35,43,66,.5)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-weight:600;font-size:14px}
+.setting-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.toggle{width:42px;height:22px;background:var(--border);border-radius:11px;position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.toggle.on{background:var(--neon)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .25s}
+.toggle.on::after{transform:translateX(20px)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+  <div class="lc">
+    <div class="lc-mark">W</div>
+    <div class="lc-title">WhaleX Admin</div>
+    <div class="lc-sub">Control Center — Authorized Access Only</div>
+    <div class="lc-err" id="login-err">Invalid credentials</div>
+    <div style="text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Username</div>
+    <input class="fi" type="text" id="lu" placeholder="admin" value="admin">
+    <div style="text-align:left;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Password</div>
+    <input class="fi" type="password" id="lp" placeholder="••••••••" value="admin1234" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-p" style="width:100%;justify-content:center;padding:12px;font-size:14px;margin-top:6px" onclick="doLogin()">Sign In to Admin Panel</button>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app" style="display:none;width:100%;display:none">
+
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-mark">W</div>
+    <div><div class="sb-name">WhaleX</div><div class="sb-ver">Admin v2.0</div></div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Overview</div>
+    <div class="si active" data-page="dashboard" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="sb-sec">Users</div>
+    <div class="si" data-page="users" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      All Users
+      <span class="si-badge" id="sb-total">—</span>
+    </div>
+    <div class="si" data-page="pro-users" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      PRO Subscribers
+      <span class="si-badge pro" id="sb-pro">—</span>
+    </div>
+    <div class="sb-sec">Finance</div>
+    <div class="si" data-page="payments" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Payments
+    </div>
+    <div class="si" data-page="trades" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      Trade Logs
+    </div>
+    <div class="sb-sec">AI & Signals</div>
+    <div class="si" data-page="signals" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Live Signals
+    </div>
+    <div class="si" data-page="broadcast" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M20.49 3.51a12 12 0 0 1 0 16.97M3.51 20.49a12 12 0 0 1 0-16.97"/></svg>
+      Broadcast
+    </div>
+    <div class="sb-sec">System</div>
+    <div class="si" data-page="audit" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Audit Log
+    </div>
+    <div class="si" data-page="settings" onclick="nav(this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </div>
+  </div>
+  <div class="sb-foot">
+    <div class="admin-chip">
+      <div class="admin-av">A</div>
+      <div>
+        <div style="font-weight:600;font-size:12px;color:var(--text)" id="admin-name-label">Admin</div>
+        <div style="font-size:10px;color:var(--ai)">SUPER ADMIN</div>
+      </div>
+    </div>
+    <button class="btn btn-d sm" style="width:100%;justify-content:center" onclick="logout()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Logout
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-bc" id="tb-bc">/ Overview</div>
+    </div>
+    <div class="tb-right">
+      <div class="ws-pill"><div class="ws-dot"></div><span id="ws-count">0</span> Live</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)" id="clock">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="sg" id="dash-stats">
+        <div class="sc cn"><div class="sc-l">Total Users</div><div class="sc-v" id="d-total">—</div><div class="sc-s">Registered accounts</div><div class="sc-i"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--neon)" stroke-width="1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div></div>
+        <div class="sc ca"><div class="sc-l">PRO Users</div><div class="sc-v" id="d-pro">—</div><div class="sc-s" id="d-pro-pct">— % conversion</div><div class="sc-i"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ai)" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div></div>
+        <div class="sc cgo"><div class="sc-l">Revenue (USDT)</div><div class="sc-v" id="d-rev">$—</div><div class="sc-s">Confirmed payments</div><div class="sc-i"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+        <div class="sc cg"><div class="sc-l">Total Trades</div><div class="sc-v" id="d-trades">—</div><div class="sc-s" id="d-vol">Volume: $—</div><div class="sc-i"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg></div></div>
+        <div class="sc cn"><div class="sc-l">Free Users</div><div class="sc-v" id="d-free">—</div><div class="sc-s">Upgrade potential</div></div>
+        <div class="sc cg"><div class="sc-l">Active Signals</div><div class="sc-v" id="d-sigs">—</div><div class="sc-s">On radar</div></div>
+        <div class="sc ca"><div class="sc-l">WS Connections</div><div class="sc-v" id="d-ws">—</div><div class="sc-s">Live clients</div></div>
+        <div class="sc cgo"><div class="sc-l">Conversion Rate</div><div class="sc-v" id="d-conv">—%</div><div class="sc-s">Free → PRO</div></div>
+      </div>
+
+      <div class="tc" style="margin-bottom:16px">
+        <div class="tc-head"><div class="tc-title">Quick Actions</div></div>
+        <div style="padding:14px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-p sm" onclick="openModal('mo-grant')">Grant PRO to User</button>
+          <button class="btn btn-go sm" onclick="openModal('mo-broadcast')">Broadcast Message</button>
+          <button class="btn btn-s sm" onclick="loadSignals()">Refresh Signals</button>
+          <button class="btn btn-g sm" onclick="loadDashboard()">Refresh Stats</button>
+          <button class="btn btn-ai sm" onclick="nav(document.querySelector('[data-page=audit]'))">View Audit Log</button>
+        </div>
+      </div>
+
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Recent Users</div>
+          <button class="btn btn-g sm" onclick="nav(document.querySelector('[data-page=users]'))">View All →</button>
+        </div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Username</th><th>Tier</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
+          <tbody id="dash-recent"><tr><td colspan="5"><div class="empty">Loading...</div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ ALL USERS ═══ -->
+    <div class="page" id="page-users">
+      <div class="chips" id="user-chips">
+        <div class="chip active" onclick="setChip(this,'all');loadUsers()">All</div>
+        <div class="chip" onclick="setChip(this,'pro');loadUsers()">PRO Only</div>
+        <div class="chip" onclick="setChip(this,'free');loadUsers()">Free Only</div>
+      </div>
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Users <span class="b b-free" id="users-total-badge" style="margin-left:6px">0</span></div>
+          <div class="tc-actions">
+            <div class="search-box">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="user-search" placeholder="Search username / email…" oninput="loadUsers()">
+            </div>
+            <button class="btn btn-p sm" onclick="loadUsers()">Refresh</button>
+          </div>
+        </div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>UID</th><th>Username</th><th>Email</th><th>Tier</th><th>Status</th><th>Trades</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="8"><div class="empty">Loading…</div></td></tr></tbody>
+        </table></div>
+        <div class="pag" id="users-pag"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PRO USERS ═══ -->
+    <div class="page" id="page-pro-users">
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title" style="color:var(--ai)">PRO Subscribers <span class="b b-pro" id="pro-total-badge" style="margin-left:6px">0</span></div>
+          <button class="btn btn-p sm" onclick="loadProUsers()">Refresh</button>
+        </div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Username</th><th>Email</th><th>Plan</th><th>Paid</th><th>Started</th><th>Expires</th><th>Actions</th></tr></thead>
+          <tbody id="pro-tbody"><tr><td colspan="7"><div class="empty">Loading…</div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ PAYMENTS ═══ -->
+    <div class="page" id="page-payments">
+      <div class="sg sg-3" style="margin-bottom:20px">
+        <div class="sc cgo"><div class="sc-l">Total Revenue</div><div class="sc-v" id="pay-total-rev">$—</div><div class="sc-s">Confirmed only</div></div>
+        <div class="sc cg"><div class="sc-l">Confirmed</div><div class="sc-v" id="pay-confirmed">—</div><div class="sc-s">Payments</div></div>
+        <div class="sc cr"><div class="sc-l">Failed</div><div class="sc-v" id="pay-failed">—</div><div class="sc-s">Payments</div></div>
+      </div>
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Payment History</div>
+          <button class="btn btn-p sm" onclick="loadPayments()">Refresh</button>
+        </div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>ID</th><th>User</th><th>Amount</th><th>Currency</th><th>Plan</th><th>Chain</th><th>TX Hash</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="pay-tbody"><tr><td colspan="9"><div class="empty">Loading…</div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ═══ TRADE LOGS ═══ -->
+    <div class="page" id="page-trades">
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Trade Logs</div>
+          <button class="btn btn-p sm" onclick="loadTrades()">Refresh</button>
+        </div>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>ID</th><th>User</th><th>Symbol</th><th>Direction</th><th>Amount</th><th>Leverage</th><th>Chain</th><th>DEX</th><th>Gas Fee</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody id="trades-tbody"><tr><td colspan="11"><div class="empty">Loading…</div></td></tr></tbody>
+        </table></div>
+        <div class="pag" id="trades-pag"></div>
+      </div>
+    </div>
+
+    <!-- ═══ LIVE SIGNALS ═══ -->
+    <div class="page" id="page-signals">
+      <div class="sh">
+        <div class="sh-t">Live Signals <span class="b b-active" id="sigs-count-badge" style="margin-left:6px">0</span></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-s sm" onclick="loadSignals()">Refresh</button>
+          <button class="btn btn-go sm" onclick="openModal('mo-inject-signal')">+ Inject Signal</button>
+        </div>
+      </div>
+      <div id="signals-list"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- ═══ BROADCAST ═══ -->
+    <div class="page" id="page-broadcast">
+      <div style="max-width:600px">
+        <div class="info-box">Send a real-time WebSocket event to all connected clients. Use <code>new_signal</code> to push a signal, or <code>admin_message</code> for a custom alert.</div>
+        <div class="tc">
+          <div class="tc-head"><div class="tc-title">Broadcast to All Clients</div></div>
+          <div style="padding:20px">
+            <label class="fl">Event Type</label>
+            <select class="fselect" id="bc-event" style="margin-bottom:14px">
+              <option value="admin_message">admin_message — Custom Alert</option>
+              <option value="new_signal">new_signal — Push Signal</option>
+              <option value="price_update">price_update — Price Tick</option>
+              <option value="system_alert">system_alert — System Notice</option>
+            </select>
+            <label class="fl">Payload (JSON)</label>
+            <textarea class="finput" id="bc-payload" rows="7" style="font-size:12px;resize:vertical">{"message": "Platform maintenance in 10 minutes.", "level": "warning"}</textarea>
+            <div style="margin-top:6px;display:flex;gap:8px">
+              <button class="btn btn-p" onclick="doBroadcast()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 16.24a6 6 0 0 1 0-8.49M20.49 3.51a12 12 0 0 1 0 16.97M3.51 20.49a12 12 0 0 1 0-16.97"/></svg>
+                Broadcast Now
+              </button>
+              <button class="btn btn-g" onclick="document.getElementById('bc-payload').value='{}'">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="tc">
+          <div class="tc-head"><div class="tc-title">Quick Broadcasts</div></div>
+          <div style="padding:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-go sm" onclick="quickBc('admin_message',{message:'Platform maintenance in 30 minutes.',level:'warning'})">Maintenance Alert</button>
+            <button class="btn btn-s sm" onclick="quickBc('admin_message',{message:'New PRO features unlocked!',level:'info'})">Feature Announcement</button>
+            <button class="btn btn-d sm" onclick="quickBc('admin_message',{message:'Emergency: All trading paused.',level:'critical'})">Emergency Stop</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ AUDIT LOG ═══ -->
+    <div class="page" id="page-audit">
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Admin Audit Log</div>
+          <button class="btn btn-p sm" onclick="loadAudit()">Refresh</button>
+        </div>
+        <div style="padding:16px 20px" id="audit-list"><div class="empty">Loading…</div></div>
+        <div class="pag" id="audit-pag"></div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <div class="page" id="page-settings">
+      <div style="max-width:640px">
+        <div class="warn-box">Changes here affect the live system. Proceed with care.</div>
+        <div class="tc" style="margin-bottom:20px">
+          <div class="tc-head"><div class="tc-title">Platform Settings</div></div>
+          <div style="padding:16px 20px">
+            <div class="setting-row">
+              <div><div class="setting-label">Maintenance Mode</div><div class="setting-sub">Disables trading for all users</div></div>
+              <div class="toggle" id="tog-maintenance" onclick="toggleSetting(this,'maintenance')"></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Allow New Registrations</div><div class="setting-sub">Open signup to public</div></div>
+              <div class="toggle on" id="tog-signup" onclick="toggleSetting(this,'signup')"></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">Live Signal Broadcaster</div><div class="setting-sub">Auto-broadcast signals via WebSocket</div></div>
+              <div class="toggle on" id="tog-signals" onclick="toggleSetting(this,'signals')"></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">AI Chat Enabled</div><div class="setting-sub">PRO AI assistant access</div></div>
+              <div class="toggle on" id="tog-ai" onclick="toggleSetting(this,'ai')"></div>
+            </div>
+          </div>
+        </div>
+        <div class="tc">
+          <div class="tc-head"><div class="tc-title">PRO Plan Pricing</div></div>
+          <div style="padding:16px 20px">
+            <label class="fl">PRO Monthly Price (USDT)</label>
+            <input class="finput" type="number" value="29" id="pro-price-input" style="max-width:200px">
+            <label class="fl">PRO Duration (Days)</label>
+            <input class="finput" type="number" value="30" id="pro-days-input" style="max-width:200px">
+            <button class="btn btn-p sm" onclick="showToast('Settings saved (demo)','ok')">Save Changes</button>
+          </div>
+        </div>
+        <div class="tc">
+          <div class="tc-head"><div class="tc-title">Admin Password</div></div>
+          <div style="padding:16px 20px">
+            <label class="fl">New Password</label>
+            <input class="finput" type="password" id="new-pass" placeholder="••••••••" style="max-width:300px">
+            <label class="fl">Confirm Password</label>
+            <input class="finput" type="password" id="confirm-pass" placeholder="••••••••" style="max-width:300px">
+            <button class="btn btn-p sm" onclick="changePass()">Update Password</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Grant PRO -->
+<div class="mo" id="mo-grant">
+  <div class="mo-box">
+    <div class="mo-title">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ai)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Grant / Change Subscription
+    </div>
+    <label class="fl">User UID</label>
+    <input class="finput" id="grant-uid" placeholder="Paste user UID…">
+    <label class="fl">New Tier</label>
+    <select class="fselect" id="grant-tier">
+      <option value="pro">PRO</option>
+      <option value="free">Free (Downgrade)</option>
+      <option value="enterprise">Enterprise</option>
+    </select>
+    <div class="info-box">This immediately updates the user's subscription tier in the database and unlocks/locks PRO features.</div>
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-grant')">Cancel</button>
+      <button class="btn btn-p" onclick="doGrantTier()">Apply Change</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ban User -->
+<div class="mo" id="mo-ban">
+  <div class="mo-box">
+    <div class="mo-title" style="color:var(--red)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      Ban User
+    </div>
+    <input class="finput" type="hidden" id="ban-uid">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">User: <b id="ban-username" style="color:var(--red)">—</b></div>
+    <label class="fl">Reason (optional)</label>
+    <input class="finput" id="ban-reason" placeholder="Reason for ban…">
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-ban')">Cancel</button>
+      <button class="btn btn-d" onclick="doBan()">Confirm Ban</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unban User -->
+<div class="mo" id="mo-unban">
+  <div class="mo-box">
+    <div class="mo-title" style="color:var(--green)">Unban User</div>
+    <input class="finput" type="hidden" id="unban-uid">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">User: <b id="unban-username" style="color:var(--green)">—</b></div>
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-unban')">Cancel</button>
+      <button class="btn btn-s" onclick="doUnban()">Confirm Unban</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete User -->
+<div class="mo" id="mo-delete">
+  <div class="mo-box">
+    <div class="mo-title" style="color:var(--red)">Delete User Permanently</div>
+    <input type="hidden" id="delete-uid">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">User: <b id="delete-username" style="color:var(--red)">—</b></div>
+    <div class="warn-box">This action is irreversible. All user data, trades, and payments will be deleted.</div>
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-delete')">Cancel</button>
+      <button class="btn btn-d" onclick="doDelete()">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inject Signal -->
+<div class="mo" id="mo-inject-signal">
+  <div class="mo-box">
+    <div class="mo-title">Inject Live Signal</div>
+    <label class="fl">Symbol</label>
+    <input class="finput" id="sig-sym" value="BTC/USDT">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label class="fl">Direction</label>
+        <select class="fselect" id="sig-dir"><option>LONG</option><option>SHORT</option></select>
+      </div>
+      <div>
+        <label class="fl">Grade</label>
+        <select class="fselect" id="sig-grade"><option>S</option><option>A</option><option>B</option></select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="fl">Entry</label><input class="finput" id="sig-entry" value="67500"></div>
+      <div><label class="fl">Confidence %</label><input class="finput" id="sig-conf" type="number" value="85"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+      <div><label class="fl">SL</label><input class="finput" id="sig-sl" value="66000"></div>
+      <div><label class="fl">TP1</label><input class="finput" id="sig-tp1" value="68500"></div>
+      <div><label class="fl">TP2</label><input class="finput" id="sig-tp2" value="70000"></div>
+      <div><label class="fl">TP3</label><input class="finput" id="sig-tp3" value="72000"></div>
+    </div>
+    <label class="fl">Chain</label>
+    <select class="fselect" id="sig-chain"><option value="eth">ETH</option><option value="sol">SOL</option><option value="bsc">BSC</option></select>
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-inject-signal')">Cancel</button>
+      <button class="btn btn-p" onclick="doInjectSignal()">Broadcast Signal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcast Modal -->
+<div class="mo" id="mo-broadcast">
+  <div class="mo-box">
+    <div class="mo-title">Quick Broadcast</div>
+    <label class="fl">Message</label>
+    <input class="finput" id="bc-quick-msg" placeholder="Enter your message…">
+    <label class="fl">Level</label>
+    <select class="fselect" id="bc-quick-level">
+      <option value="info">Info</option>
+      <option value="warning">Warning</option>
+      <option value="critical">Critical</option>
+    </select>
+    <div class="mo-foot">
+      <button class="btn btn-g" onclick="closeModal('mo-broadcast')">Cancel</button>
+      <button class="btn btn-go" onclick="doQuickBroadcast()">Send Broadcast</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-wrap"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════ */
+const BASE = window.location.origin.replace('/admin-panel','');
+let TOKEN = '';
+let currentUserFilter = 'all';
+let usersPage = 1;
+let tradesPage = 1;
+let auditPage  = 1;
+
+/* ══════════════════════════════════════════
+   HTTP
+══════════════════════════════════════════ */
+async function API(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const r = await fetch(BASE + path, opts);
+    const data = await r.json();
+    if (!r.ok) throw data;
+    return data;
+  } catch(e) { throw e; }
+}
+const GET  = path       => API('GET',  path);
+const POST = (path, b)  => API('POST', path, b);
+const DEL  = path       => API('DELETE', path);
+
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+async function doLogin() {
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value.trim();
+  if (!u || !p) return;
+  try {
+    const data = await POST('/api/auth/login', { username: u, password: p });
+    if (!data.is_admin) { showErr('Your account does not have admin access.'); return; }
+    TOKEN = data.access_token;
+    document.getElementById('admin-name-label').textContent = u;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadDashboard();
+    startClock();
+    startWSPoll();
+  } catch(e) {
+    showErr(e?.detail || 'Login failed');
+  }
+}
+function showErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+function logout() {
+  TOKEN = '';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  showToast('Logged out', 'info');
+}
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+const PAGE_TITLES = {
+  dashboard: ['Dashboard', '/ Overview'],
+  users: ['Users', '/ All Users'],
+  'pro-users': ['PRO Subscribers', '/ Subscriptions'],
+  payments: ['Payments', '/ Finance'],
+  trades: ['Trade Logs', '/ Finance'],
+  signals: ['Live Signals', '/ AI & Signals'],
+  broadcast: ['Broadcast', '/ AI & Signals'],
+  audit: ['Audit Log', '/ System'],
+  settings: ['Settings', '/ System'],
+};
+function nav(el) {
+  document.querySelectorAll('.si').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  const page = el.dataset.page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  const [title, bc] = PAGE_TITLES[page] || [page, ''];
+  document.getElementById('tb-title').textContent = title;
+  document.getElementById('tb-bc').textContent = bc;
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'users') loadUsers();
+  if (page === 'pro-users') loadProUsers();
+  if (page === 'payments') loadPayments();
+  if (page === 'trades') loadTrades();
+  if (page === 'signals') loadSignals();
+  if (page === 'audit') loadAudit();
+}
+
+/* ══════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════ */
+function startClock() {
+  setInterval(() => {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }, 1000);
+}
+
+/* ══════════════════════════════════════════
+   WS POLL
+══════════════════════════════════════════ */
+function startWSPoll() {
+  setInterval(async () => {
+    try {
+      const d = await GET('/api/admin/stats');
+      document.getElementById('ws-count').textContent = d.ws_connections || 0;
+    } catch(e){}
+  }, 10000);
+}
+
+/* ══════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════ */
+async function loadDashboard() {
+  try {
+    const d = await GET('/api/admin/stats');
+    document.getElementById('d-total').textContent = d.total_users;
+    document.getElementById('d-pro').textContent   = d.pro_users;
+    document.getElementById('d-free').textContent  = d.free_users;
+    document.getElementById('d-rev').textContent   = '$' + d.total_revenue.toLocaleString();
+    document.getElementById('d-trades').textContent= d.total_trades;
+    document.getElementById('d-vol').textContent   = 'Volume: $' + d.total_volume.toLocaleString();
+    document.getElementById('d-sigs').textContent  = d.active_signals;
+    document.getElementById('d-ws').textContent    = d.ws_connections;
+    document.getElementById('ws-count').textContent= d.ws_connections;
+    const conv = d.total_users ? ((d.pro_users / d.total_users) * 100).toFixed(1) : 0;
+    document.getElementById('d-conv').textContent  = conv + '%';
+    document.getElementById('d-pro-pct').textContent = conv + '% conversion';
+    document.getElementById('sb-total').textContent = d.total_users;
+    document.getElementById('sb-pro').textContent   = d.pro_users;
+
+    // recent users
+    const users = await GET('/api/admin/users?limit=6');
+    document.getElementById('dash-recent').innerHTML = users.length
+      ? users.map(u => `<tr>
+          <td><b>${u.username || '—'}</b></td>
+          <td><span class="b ${u.subscription_tier==='pro'?'b-pro':'b-free'}">${u.subscription_tier.toUpperCase()}</span></td>
+          <td><span class="b ${u.is_active?'b-active':'b-banned'}">${u.is_active?'Active':'Banned'}</span></td>
+          <td class="mono">${fmtDate(u.created_at)}</td>
+          <td><button class="btn btn-g xs" onclick="openGrantFor('${u.uid}')">Manage</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="5"><div class="empty">No users yet</div></td></tr>';
+  } catch(e) { showToast('Failed to load dashboard: ' + (e?.detail||e), 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   USERS
+══════════════════════════════════════════ */
+let userFilterTier = 'all';
+function setChip(el, val) {
+  document.querySelectorAll('#user-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  userFilterTier = val;
+  usersPage = 1;
+}
+
+async function loadUsers() {
+  const search = document.getElementById('user-search')?.value || '';
+  const tier   = userFilterTier !== 'all' ? '&tier=' + userFilterTier : '';
+  try {
+    const data = await GET(`/api/admin/users?page=${usersPage}&limit=20${tier}&search=${encodeURIComponent(search)}`);
+    document.getElementById('users-total-badge').textContent = data.length;
+    document.getElementById('users-tbody').innerHTML = data.length
+      ? data.map(u => `<tr>
+          <td><div class="uid" title="${u.uid}" onclick="copyUID('${u.uid}')">${u.uid.substring(0,12)}…</div></td>
+          <td><b>${u.username||'—'}</b>${u.is_admin?'<span class="b b-admin" style="margin-left:5px">ADMIN</span>':''}</td>
+          <td class="mono">${u.email||'—'}</td>
+          <td><span class="b ${u.subscription_tier==='pro'?'b-pro':'b-free'}">${u.subscription_tier.toUpperCase()}</span></td>
+          <td><span class="b ${u.is_active?'b-active':'b-banned'}">${u.is_active?'Active':'Banned'}</span></td>
+          <td class="mono">${u.total_trades}</td>
+          <td class="mono">${fmtDate(u.created_at)}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-ai xs" onclick="openGrantFor('${u.uid}')">Tier</button>
+              ${u.is_active
+                ? `<button class="btn btn-d xs" onclick="openBan('${u.uid}','${u.username||'User'}')">Ban</button>`
+                : `<button class="btn btn-s xs" onclick="openUnban('${u.uid}','${u.username||'User'}')">Unban</button>`
+              }
+              ${!u.is_admin ? `<button class="btn btn-d xs" onclick="openDelete('${u.uid}','${u.username||'User'}')">Del</button>` : ''}
+            </div>
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="8"><div class="empty">No users found</div></td></tr>';
+    renderPag('users-pag', usersPage, data.length < 20, p => { usersPage = p; loadUsers(); });
+  } catch(e) { showToast('Error loading users', 'err'); }
+}
+
+async function loadProUsers() {
+  try {
+    const data = await GET('/api/admin/users?tier=pro&limit=100');
+    document.getElementById('pro-total-badge').textContent = data.length;
+    document.getElementById('pro-tbody').innerHTML = data.length
+      ? data.map(u => `<tr>
+          <td><b>${u.username||'—'}</b></td>
+          <td class="mono">${u.email||'—'}</td>
+          <td><span class="b b-pro">PRO</span></td>
+          <td class="mono">$29</td>
+          <td class="mono">${fmtDate(u.created_at)}</td>
+          <td class="mono">—</td>
+          <td>
+            <button class="btn btn-d xs" onclick="openGrantFor('${u.uid}')">Downgrade</button>
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="7"><div class="empty">No PRO subscribers yet</div></td></tr>';
+  } catch(e) { showToast('Error loading PRO users', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   PAYMENTS
+══════════════════════════════════════════ */
+async function loadPayments() {
+  try {
+    const data = await GET('/api/admin/payments?limit=50');
+    const confirmed = data.filter(p => p.status === 'confirmed');
+    const failed    = data.filter(p => p.status === 'failed');
+    const revenue   = confirmed.reduce((s, p) => s + p.amount, 0);
+    document.getElementById('pay-total-rev').textContent = '$' + revenue.toLocaleString();
+    document.getElementById('pay-confirmed').textContent = confirmed.length;
+    document.getElementById('pay-failed').textContent    = failed.length;
+    document.getElementById('pay-tbody').innerHTML = data.length
+      ? data.map(p => `<tr>
+          <td class="mono">#${p.id}</td>
+          <td class="mono">${p.user_id}</td>
+          <td class="mono" style="color:var(--gold)"><b>${p.amount}</b></td>
+          <td class="mono">${p.currency}</td>
+          <td><span class="b b-pro">${p.plan.toUpperCase()}</span></td>
+          <td class="mono">${p.chain||'—'}</td>
+          <td><div class="uid" title="${p.tx_hash||''}" onclick="copyUID('${p.tx_hash||''}')">${(p.tx_hash||'—').substring(0,14)}…</div></td>
+          <td><span class="b b-${p.status}">${p.status}</span></td>
+          <td class="mono">${fmtDate(p.created_at)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="9"><div class="empty">No payments yet</div></td></tr>';
+  } catch(e) { showToast('Error loading payments', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   TRADES
+══════════════════════════════════════════ */
+async function loadTrades() {
+  try {
+    const data = await GET(`/api/admin/trades?page=${tradesPage}&limit=30`);
+    document.getElementById('trades-tbody').innerHTML = data.length
+      ? data.map(t => `<tr>
+          <td class="mono">#${t.id}</td>
+          <td class="mono">${t.user_id}</td>
+          <td><b>${t.symbol}</b></td>
+          <td><span class="b ${t.direction==='LONG'?'b-long':'b-short'}">${t.direction}</span></td>
+          <td class="mono" style="color:var(--gold)">$${t.amount}</td>
+          <td class="mono">${t.leverage}×</td>
+          <td class="mono">${t.chain||'—'}</td>
+          <td class="mono">${t.dex||'—'}</td>
+          <td class="mono" style="color:var(--red)">$${t.gas_fee}</td>
+          <td><span class="b b-confirmed">${t.status}</span></td>
+          <td class="mono">${fmtDate(t.created_at)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="11"><div class="empty">No trades yet</div></td></tr>';
+    renderPag('trades-pag', tradesPage, data.length < 30, p => { tradesPage = p; loadTrades(); });
+  } catch(e) { showToast('Error loading trades', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   SIGNALS
+══════════════════════════════════════════ */
+async function loadSignals() {
+  try {
+    const data = await GET('/api/admin/signals');
+    document.getElementById('sigs-count-badge').textContent = data.count || 0;
+    const list = document.getElementById('signals-list');
+    if (!data.signals?.length) { list.innerHTML = '<div class="empty">No active signals</div>'; return; }
+    const gradeClass = { S:'b-s', A:'b-a', B:'b-b' };
+    const gradeStyle = {
+      S:'background:rgba(255,214,0,.15);border:1px solid rgba(255,214,0,.4);color:var(--gold)',
+      A:'background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.3);color:var(--green)',
+      B:'background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--neon)',
+    };
+    list.innerHTML = data.signals.map(s => `
+      <div class="sig-item">
+        <div class="sig-grade" style="${gradeStyle[s.grade]||gradeStyle.B}">${s.grade}</div>
+        <div class="sig-info">
+          <div class="sig-sym">${s.symbol}</div>
+          <div class="sig-meta">Entry: ${s.entry} | SL: ${s.sl} | TP1: ${s.tp1}</div>
+        </div>
+        <span class="b ${s.direction==='LONG'?'b-long':'b-short'}">${s.direction}</span>
+        <div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:3px">${s.confidence}% conf</div>
+          <div class="conf-bar"><div class="conf-fill" style="width:${s.confidence}%"></div></div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-go xs" onclick="rebroadcastSignal(${JSON.stringify(s).replace(/"/g,"'")})">Push</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { showToast('Error loading signals', 'err'); }
+}
+
+async function rebroadcastSignal(s) {
+  try {
+    await POST('/api/admin/signals/broadcast', s);
+    showToast('Signal broadcasted to all clients', 'ok');
+  } catch(e) { showToast('Broadcast failed', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   AUDIT LOG
+══════════════════════════════════════════ */
+async function loadAudit() {
+  try {
+    const data = await GET(`/api/admin/audit-log?page=${auditPage}&limit=30`);
+    const colors = { set_tier:'var(--ai)', ban_user:'var(--red)', unban_user:'var(--green)', delete_user:'var(--red)', broadcast_signal:'var(--neon)' };
+    document.getElementById('audit-list').innerHTML = data.length
+      ? data.map(a => `
+        <div class="audit-item">
+          <div class="audit-dot" style="background:${colors[a.action]||'var(--text3)'}"></div>
+          <div>
+            <div class="audit-act">${a.action} ${a.target_type ? `<span class="b b-free" style="font-size:9px">${a.target_type}</span>` : ''}</div>
+            <div class="audit-meta">${a.detail || ''} · ${fmtDate(a.created_at)}</div>
+          </div>
+        </div>`).join('')
+      : '<div class="empty">No audit entries yet</div>';
+    renderPag('audit-pag', auditPage, data.length < 30, p => { auditPage = p; loadAudit(); });
+  } catch(e) { showToast('Error loading audit log', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   MODAL ACTIONS
+══════════════════════════════════════════ */
+function openGrantFor(uid) {
+  document.getElementById('grant-uid').value = uid;
+  openModal('mo-grant');
+}
+async function doGrantTier() {
+  const uid  = document.getElementById('grant-uid').value.trim();
+  const tier = document.getElementById('grant-tier').value;
+  if (!uid) { showToast('Enter a UID', 'warn'); return; }
+  try {
+    await POST('/api/admin/users/set-tier', { user_uid: uid, tier });
+    showToast(`Tier updated to ${tier.toUpperCase()}`, 'ok');
+    closeModal('mo-grant');
+    loadDashboard();
+    loadUsers();
+  } catch(e) { showToast(e?.detail || 'Error', 'err'); }
+}
+
+function openBan(uid, username) {
+  document.getElementById('ban-uid').value = uid;
+  document.getElementById('ban-username').textContent = username;
+  openModal('mo-ban');
+}
+async function doBan() {
+  const uid    = document.getElementById('ban-uid').value;
+  const reason = document.getElementById('ban-reason').value;
+  try {
+    await POST('/api/admin/users/ban', { user_uid: uid, reason });
+    showToast('User banned', 'ok');
+    closeModal('mo-ban');
+    loadUsers();
+  } catch(e) { showToast(e?.detail || 'Error', 'err'); }
+}
+
+function openUnban(uid, username) {
+  document.getElementById('unban-uid').value = uid;
+  document.getElementById('unban-username').textContent = username;
+  openModal('mo-unban');
+}
+async function doUnban() {
+  const uid = document.getElementById('unban-uid').value;
+  try {
+    await POST('/api/admin/users/unban', { user_uid: uid, reason: 'Admin unbanned' });
+    showToast('User unbanned', 'ok');
+    closeModal('mo-unban');
+    loadUsers();
+  } catch(e) { showToast(e?.detail || 'Error', 'err'); }
+}
+
+function openDelete(uid, username) {
+  document.getElementById('delete-uid').value = uid;
+  document.getElementById('delete-username').textContent = username;
+  openModal('mo-delete');
+}
+async function doDelete() {
+  const uid = document.getElementById('delete-uid').value;
+  try {
+    await DEL('/api/admin/users/' + uid);
+    showToast('User deleted permanently', 'ok');
+    closeModal('mo-delete');
+    loadUsers();
+    loadDashboard();
+  } catch(e) { showToast(e?.detail || 'Error', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   BROADCAST
+══════════════════════════════════════════ */
+async function doBroadcast() {
+  const event = document.getElementById('bc-event').value;
+  let data;
+  try { data = JSON.parse(document.getElementById('bc-payload').value); }
+  catch(e) { showToast('Invalid JSON payload', 'err'); return; }
+  try {
+    const r = await POST('/api/admin/broadcast', { event, data });
+    showToast(`Sent to ${r.connections} client(s)`, 'ok');
+  } catch(e) { showToast('Broadcast failed', 'err'); }
+}
+
+async function quickBc(event, data) {
+  try {
+    const r = await POST('/api/admin/broadcast', { event, data });
+    showToast(`Broadcast sent to ${r.connections} clients`, 'ok');
+  } catch(e) { showToast('Broadcast failed', 'err'); }
+}
+
+async function doQuickBroadcast() {
+  const msg   = document.getElementById('bc-quick-msg').value.trim();
+  const level = document.getElementById('bc-quick-level').value;
+  if (!msg) { showToast('Enter a message', 'warn'); return; }
+  try {
+    const r = await POST('/api/admin/broadcast', { event: 'admin_message', data: { message: msg, level } });
+    showToast(`Sent to ${r.connections} clients`, 'ok');
+    closeModal('mo-broadcast');
+  } catch(e) { showToast('Failed', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   INJECT SIGNAL
+══════════════════════════════════════════ */
+async function doInjectSignal() {
+  const signal = {
+    id:         crypto.randomUUID(),
+    symbol:     document.getElementById('sig-sym').value,
+    direction:  document.getElementById('sig-dir').value,
+    grade:      document.getElementById('sig-grade').value,
+    confidence: parseInt(document.getElementById('sig-conf').value),
+    entry:      parseFloat(document.getElementById('sig-entry').value),
+    sl:         parseFloat(document.getElementById('sig-sl').value),
+    tp1:        parseFloat(document.getElementById('sig-tp1').value),
+    tp2:        parseFloat(document.getElementById('sig-tp2').value),
+    tp3:        parseFloat(document.getElementById('sig-tp3').value),
+    chain:      document.getElementById('sig-chain').value,
+    strategies: 'Admin Injected',
+    trade_type: 'futures',
+    timestamp:  new Date().toISOString(),
+  };
+  try {
+    await POST('/api/admin/signals/broadcast', signal);
+    showToast(`Signal ${signal.symbol} ${signal.direction} broadcasted`, 'ok');
+    closeModal('mo-inject-signal');
+    loadSignals();
+  } catch(e) { showToast('Failed to inject signal', 'err'); }
+}
+
+/* ══════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════ */
+function toggleSetting(el, key) {
+  el.classList.toggle('on');
+  const state = el.classList.contains('on');
+  showToast(`${key}: ${state ? 'Enabled' : 'Disabled'} (demo)`, 'info');
+}
+function changePass() {
+  const np = document.getElementById('new-pass').value;
+  const cp = document.getElementById('confirm-pass').value;
+  if (!np) { showToast('Enter new password', 'warn'); return; }
+  if (np !== cp) { showToast('Passwords do not match', 'err'); return; }
+  if (np.length < 6) { showToast('Min 6 characters', 'warn'); return; }
+  showToast('Password updated (demo)', 'ok');
+}
+
+/* ══════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════ */
+function openModal(id) { document.getElementById(id).classList.add('open') }
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.mo').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open') }));
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function copyUID(uid) {
+  if (!uid) return;
+  navigator.clipboard?.writeText(uid);
+  showToast('UID copied: ' + uid.substring(0, 16) + '…', 'info');
+}
+
+function renderPag(containerId, currentPage, isLast, onPage) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const prev = currentPage > 1;
+  const next = !isLast;
+  el.innerHTML = `
+    <span style="font-size:11px;color:var(--text3);margin-right:8px">Page ${currentPage}</span>
+    <div class="pag-btn ${!prev?'':''}` + (prev ? '' : 'disabled') + `" onclick="${prev ? `(${onPage})(${currentPage-1})` : ''}">‹</div>
+    <div class="pag-btn act">${currentPage}</div>
+    <div class="pag-btn" onclick="${next ? `(${onPage})(${currentPage+1})` : ''}">›</div>`;
+}
+
+function showToast(msg, type = 'info') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { ok:'✓', err:'✕', info:'ℹ', warn:'⚠' };
+  el.innerHTML = `<span>${icons[type]||'•'}</span><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+</script>
+</body>
+</html>

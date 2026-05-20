@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>WhaleX HFT — Live Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#04060e;--bg2:#080d1a;--bg3:#0c1220;--card:#0f1828;--card2:#131e30;
+  --border:#1a2840;--border2:#243858;
+  --neon:#00f0ff;--neon2:#00c8e0;--ai:#7c3aff;--green:#00ff88;
+  --red:#ff2244;--gold:#ffd700;--orange:#ff6600;
+  --text:#d0e8ff;--text2:#5a80b0;--text3:#243050;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;font-size:13px;overflow-x:hidden}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.tab{flex:1;padding:12px 4px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--neon);border-bottom-color:var(--neon)}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:10px;overflow:hidden}
+.card-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px}
+.card-body{padding:12px 14px}
+
+/* RADAR GAUGE */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:16px 0}
+.gauge-score{font-size:52px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-2px}
+.gauge-label{font-size:11px;color:var(--text2);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.gauge-arc{width:160px;height:80px;position:relative;margin-bottom:8px}
+.arc-svg{width:100%;height:100%}
+
+/* METRIC GRID */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{background:var(--bg3);border-radius:8px;padding:10px}
+.metric-label{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.metric-val{font-family:'SF Mono','JetBrains Mono',monospace;font-size:15px;font-weight:700}
+.metric-3{grid-template-columns:1fr 1fr 1fr}
+
+/* PILLS / BADGES */
+.pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;font-family:monospace;white-space:nowrap}
+.p-long {background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+.p-short{background:rgba(255,34,68,.12);color:var(--red);border:1px solid rgba(255,34,68,.25)}
+.p-flat {background:rgba(90,128,176,.1);color:var(--text2);border:1px solid var(--border)}
+.p-ai   {background:rgba(124,58,255,.15);color:var(--ai);border:1px solid rgba(124,58,255,.3)}
+.p-neon {background:rgba(0,240,255,.1);color:var(--neon);border:1px solid rgba(0,240,255,.25)}
+.p-gold {background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.25)}
+.p-red  {background:rgba(255,34,68,.1);color:var(--red);border:1px solid rgba(255,34,68,.2)}
+.p-ok   {background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+
+/* LIVE DOT */
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;animation:blink 1.5s infinite}
+.ldot.g{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ldot.r{background:var(--red)}
+.ldot.y{background:var(--gold)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* SCORE BAR */
+.score-bar-wrap{margin-top:8px}
+.score-bar-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+
+/* SUPPRESSION BANNER */
+.suppress-banner{background:rgba(255,34,68,.08);border:1px solid rgba(255,34,68,.25);border-radius:8px;padding:10px 12px;margin:0 10px 10px;font-size:11px;color:var(--red);display:none;line-height:1.5}
+.suppress-banner.show{display:block}
+
+/* TRADE CARD */
+.trade-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.trade-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.trade-sym{font-weight:800;font-size:14px;font-family:monospace}
+.trade-state-badge{font-size:9px;padding:2px 6px;border-radius:10px;font-weight:700}
+.st-A{background:rgba(0,255,136,.12);color:var(--green)}
+.st-B{background:rgba(255,215,0,.12);color:var(--gold)}
+.st-C{background:rgba(255,102,0,.12);color:var(--orange)}
+.st-ACT{background:rgba(0,240,255,.08);color:var(--neon)}
+.pnl-pos{color:var(--green)}
+.pnl-neg{color:var(--red)}
+
+/* SL TRAIL BAR */
+.trail-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px}
+.trail-bar{flex:1;height:3px;background:var(--border);border-radius:2px;position:relative}
+.trail-fill{position:absolute;height:100%;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));border-radius:2px}
+.trail-cursor{position:absolute;width:8px;height:8px;border-radius:50%;background:#fff;top:-2.5px;transform:translateX(-50%);transition:left .3s}
+
+/* CVD CHART */
+#cvd-canvas{width:100%!important;max-height:100px}
+
+/* ACCOUNT TOGGLE */
+.mode-toggle{display:flex;margin:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:3px;gap:3px}
+.mode-btn{flex:1;padding:9px;text-align:center;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;color:var(--text2)}
+.mode-btn.active{background:linear-gradient(135deg,var(--neon2),var(--ai));color:#fff}
+
+/* DEMO STATS */
+.demo-stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(26,40,64,.6);font-size:12px}
+.demo-stat-row:last-child{border-bottom:none}
+.demo-stat-label{color:var(--text2)}
+.demo-stat-val{font-family:monospace;font-weight:700}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.btn:active{transform:scale(.94)}
+.btn-p{background:linear-gradient(135deg,var(--neon2),var(--ai));color:#fff}
+.btn-d{background:rgba(255,34,68,.12);border:1px solid rgba(255,34,68,.3);color:var(--red)}
+.btn-g{background:var(--card2);border:1px solid var(--border);color:var(--text2)}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:6px}
+
+/* PAGE */
+.page{display:none}.page.active{display:block}
+.pb{padding-bottom:70px}
+
+/* NAVBAR */
+.navbar{position:fixed;bottom:0;left:0;right:0;background:rgba(4,6,14,.97);backdrop-filter:blur(20px);border-top:1px solid var(--border2);display:flex;z-index:200}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;cursor:pointer;color:var(--text2);font-size:10px;font-weight:700;transition:color .2s}
+.ni.active{color:var(--neon)}
+.ni svg{transition:transform .2s}
+.ni.active svg{transform:scale(1.15);filter:drop-shadow(0 0 5px var(--neon))}
+
+/* TOAST */
+#toast-el{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:9px 18px;font-size:12px;font-weight:700;z-index:9999;transition:transform .25s;white-space:nowrap}
+#toast-el.show{transform:translateX(-50%) translateY(0)}
+
+/* VPIN ANOMALY LOG */
+.anomaly-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid rgba(26,40,64,.4);font-size:11px}
+.anomaly-item:last-child{border-bottom:none}
+.anm-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.anm-time{color:var(--text3);font-family:monospace;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div id="toast-el"></div>
+
+<!-- TOP TABS (Module selector) -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('radar',this)">RADAR</div>
+  <div class="tab" onclick="switchTab('positions',this)">POSITIONS</div>
+  <div class="tab" onclick="switchTab('demo',this)">DEMO</div>
+  <div class="tab" onclick="switchTab('control',this)">CONTROL</div>
+</div>
+
+<!-- ═══ RADAR TAB ═══ -->
+<div class="page active pb" id="tab-radar">
+
+  <!-- Suppression banner -->
+  <div class="suppress-banner" id="suppress-banner">
+    ⚠️ SIGNAL SUPPRESSED — <span id="suppress-reason">—</span>
+  </div>
+
+  <!-- Score gauge -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">
+        <div class="ldot g" id="radar-dot"></div>
+        Anti-Spoof Radar
+      </div>
+      <div id="regime-badge" class="pill p-flat">UNKNOWN</div>
+    </div>
+    <div class="card-body">
+      <div class="gauge-wrap">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Composite Score</div>
+        <div class="gauge-score" id="gauge-score" style="color:var(--text)">—</div>
+        <div style="width:100%;max-width:280px;margin:10px 0 4px">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" id="score-bar" style="width:0%;background:linear-gradient(90deg,var(--red),var(--gold),var(--green))"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;width:100%;max-width:280px;font-size:9px;color:var(--text3)"><span>0</span><span>GATE: 75</span><span>100</span></div>
+        <div id="signal-badge" style="margin-top:10px" class="pill p-flat">FLAT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VPIN + OBI + CVD -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">ML Feature Densities</div></div>
+    <div class="card-body">
+      <div class="metric-grid metric-3" style="margin-bottom:10px">
+        <div class="metric">
+          <div class="metric-label">VPIN</div>
+          <div class="metric-val" id="m-vpin">—</div>
+          <div id="vpin-bar" style="height:3px;margin-top:4px;border-radius:2px;background:var(--border)">
+            <div id="vpin-fill" style="height:100%;border-radius:2px;width:0%;transition:width .4s;background:var(--red)"></div>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">OBI</div>
+          <div class="metric-val" id="m-obi">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">CVD Slope</div>
+          <div class="metric-val" id="m-cvd">—</div>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-label">Macro Weight</div>
+          <div class="metric-val" id="m-macro">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">BTC Dom.</div>
+          <div class="metric-val" id="m-btcd">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">DXY Vol.</div>
+          <div class="metric-val" id="m-dxy">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Fear & Greed</div>
+          <div class="metric-val" id="m-fg">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liq pools -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">Liquidation Pool Map</div></div>
+    <div class="card-body">
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-label">Pool Above (Longs at risk)</div>
+          <div class="metric-val" id="liq-above" style="color:var(--red)">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Pool Below (Shorts at risk)</div>
+          <div class="metric-val" id="liq-below" style="color:var(--green)">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VPIN Anomaly Log -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">VPIN Anomaly Log</div></div>
+    <div class="card-body" id="anomaly-log">
+      <div style="color:var(--text3);font-size:12px">Monitoring…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ POSITIONS TAB ═══ -->
+<div class="page pb" id="tab-positions">
+
+  <div class="mode-toggle">
+    <div class="mode-btn active" id="mode-demo" onclick="switchMode('DEMO')">DEMO MODE</div>
+    <div class="mode-btn" id="mode-real" onclick="switchMode('REAL')">REAL MODE</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">
+        <div class="ldot g" id="pos-dot"></div>
+        Active Positions
+        <span class="pill p-neon" id="pos-count">0</span>
+      </div>
+      <button class="btn btn-d btn-sm" onclick="forceCloseAll()">Close All</button>
+    </div>
+    <div class="card-body" id="positions-list">
+      <div style="color:var(--text3);text-align:center;padding:20px">No active positions</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">Recent Closed</div></div>
+    <div class="card-body" id="closed-list">
+      <div style="color:var(--text3);text-align:center;padding:16px">No history</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DEMO TAB ═══ -->
+<div class="page pb" id="tab-demo">
+  <div class="card">
+    <div class="card-head"><div class="card-title">Demo Account Ledger</div></div>
+    <div class="card-body">
+      <div style="text-align:center;margin-bottom:14px">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Equity</div>
+        <div style="font-family:monospace;font-size:32px;font-weight:800;color:var(--green)" id="demo-equity">$10,000.00</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="demo-pnl-tag">+$0.00 (0.00%)</div>
+      </div>
+      <div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Balance (Settled)</span><span class="demo-stat-val" id="d-balance">$10,000</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Total PnL</span><span class="demo-stat-val" id="d-pnl">$0.00</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Win Rate</span><span class="demo-stat-val" id="d-wr">—%</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Total Trades</span><span class="demo-stat-val" id="d-trades">0</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Wins / Losses</span><span class="demo-stat-val" id="d-wl">0 / 0</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Max Drawdown</span><span class="demo-stat-val" id="d-dd">0.00%</span></div>
+        <div class="demo-stat-row"><span class="demo-stat-label">Active Now</span><span class="demo-stat-val" id="d-active">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CVD Chart -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">Cumulative Volume Delta</div></div>
+    <div class="card-body"><canvas id="cvd-canvas" height="90"></canvas></div>
+  </div>
+
+  <!-- Score history chart -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">Composite Score History</div></div>
+    <div class="card-body"><canvas id="score-canvas" height="90"></canvas></div>
+  </div>
+</div>
+
+<!-- ═══ CONTROL TAB ═══ -->
+<div class="page pb" id="tab-control">
+  <div class="card">
+    <div class="card-head"><div class="card-title">Admin Override Panel</div></div>
+    <div class="card-body">
+      <!-- Score override -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Force Score Override (0–100)</div>
+        <div style="display:flex;gap:8px">
+          <input id="score-input" type="number" min="0" max="100" value="85" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;font-family:monospace;outline:none">
+          <button class="btn btn-p btn-sm" onclick="setScoreOverride()">Apply</button>
+          <button class="btn btn-g btn-sm" onclick="clearOverride()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Radar suppress -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Radar Kill Switch</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-d" style="flex:1;justify-content:center" onclick="suppressRadar()">SUPPRESS RADAR</button>
+          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="unsuppressRadar()">ENABLE RADAR</button>
+        </div>
+      </div>
+
+      <!-- Force close -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Position Control</div>
+        <button class="btn btn-d" style="width:100%;justify-content:center" onclick="forceCloseAll()">FORCE CLOSE ALL POSITIONS</button>
+      </div>
+
+      <!-- Force close one -->
+      <div>
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Close Specific Trade</div>
+        <div style="display:flex;gap:8px">
+          <input id="trade-id-input" placeholder="Trade ID e.g. T-1A2B3C4D" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:monospace;outline:none">
+          <button class="btn btn-d btn-sm" onclick="forceCloseOne()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live system state -->
+  <div class="card">
+    <div class="card-head"><div class="card-title">System State</div></div>
+    <div class="card-body">
+      <div class="demo-stat-row"><span class="demo-stat-label">Radar Status</span><span class="demo-stat-val" id="sys-radar">—</span></div>
+      <div class="demo-stat-row"><span class="demo-stat-label">Account Mode</span><span class="demo-stat-val" id="sys-mode">—</span></div>
+      <div class="demo-stat-row"><span class="demo-stat-label">Score Override</span><span class="demo-stat-val" id="sys-override">None</span></div>
+      <div class="demo-stat-row"><span class="demo-stat-label">Active Positions</span><span class="demo-stat-val" id="sys-positions">—</span></div>
+      <div class="demo-stat-row"><span class="demo-stat-label">Radar Hz</span><span class="demo-stat-val">100 Hz</span></div>
+      <div class="demo-stat-row"><span class="demo-stat-label">Copilot Hz</span><span class="demo-stat-val">500 Hz</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="navbar">
+  <div class="ni active" id="ni-radar" onclick="switchTab('radar',this)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Radar
+  </div>
+  <div class="ni" id="ni-positions" onclick="switchTab('positions',this)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    Positions
+  </div>
+  <div class="ni" id="ni-demo" onclick="switchTab('demo',this)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M16 12h.01"/></svg>
+    Demo
+  </div>
+  <div class="ni" id="ni-control" onclick="switchTab('control',this)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Control
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+let currentTab  = 'radar';
+let currentMode = 'DEMO';
+let scoreHistory = [];
+let cvdHistory   = [];
+let anomalyLog   = [];
+let cvdChart, scoreChart;
+
+/* ── Navigation ── */
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+  if (el && el.classList.contains('tab')) el.classList.add('active');
+  const ni = document.getElementById('ni-' + tab);
+  if (ni) ni.classList.add('active');
+  if (tab === 'demo') { initCharts(); }
+}
+
+/* ── API helpers ── */
+async function GET(path) {
+  try { const r = await fetch(BASE + path); return await r.json(); } catch(e) { return null; }
+}
+async function POST(path, body) {
+  try { const r = await fetch(BASE + path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }); return await r.json(); } catch(e) { return null; }
+}
+
+/* ── Toast ── */
+function toast(msg, col='var(--neon)') {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg; el.style.color = col; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ── Score color ── */
+function scoreColor(s) {
+  if (s >= 75) return 'var(--green)';
+  if (s >= 50) return 'var(--gold)';
+  if (s >= 25) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+/* ── Radar update ── */
+async function pollRadar() {
+  const d = await GET('/api/radar/status');
+  if (!d) return;
+
+  const score = d.composite_score || 0;
+  const sig   = d.signal || 'FLAT';
+
+  document.getElementById('gauge-score').textContent = score.toFixed(1);
+  document.getElementById('gauge-score').style.color = scoreColor(score);
+  document.getElementById('score-bar').style.width   = score + '%';
+
+  const regEl = document.getElementById('regime-badge');
+  regEl.textContent = d.regime || 'UNKNOWN';
+  regEl.className   = 'pill ' + (d.regime?.includes('BULL') ? 'p-long' : d.regime?.includes('BEAR') ? 'p-short' : 'p-flat');
+
+  const sigEl = document.getElementById('signal-badge');
+  sigEl.textContent = sig;
+  sigEl.className   = 'pill ' + (sig === 'LONG' ? 'p-long' : sig === 'SHORT' ? 'p-short' : 'p-flat');
+
+  // Suppression
+  const banner = document.getElementById('suppress-banner');
+  if (d.suppressed) {
+    banner.classList.add('show');
+    document.getElementById('suppress-reason').textContent = d.suppress_reason || '—';
+  } else {
+    banner.classList.remove('show');
+  }
+
+  // Features
+  const fd = d.feature_densities || {};
+  document.getElementById('m-vpin').textContent   = (d.vpin || 0).toFixed(4);
+  document.getElementById('m-obi').textContent    = (d.obi  || 0).toFixed(4);
+  document.getElementById('m-cvd').textContent    = (d.cvd_slope || 0).toFixed(2);
+  document.getElementById('m-macro').textContent  = (d.macro_weight || 1).toFixed(3);
+  document.getElementById('m-btcd').textContent   = (d.btc_dominance || 0).toFixed(1) + '%';
+  document.getElementById('m-dxy').textContent    = (d.dxy_volatility || 0).toFixed(4);
+  document.getElementById('m-fg').textContent     = (d.macro?.fear_greed || 0).toFixed(0);
+
+  const vpin = d.vpin || 0;
+  document.getElementById('vpin-fill').style.width = (vpin * 100) + '%';
+  document.getElementById('vpin-fill').style.background = vpin > 0.65 ? 'var(--red)' : vpin > 0.4 ? 'var(--gold)' : 'var(--green)';
+
+  document.getElementById('liq-above').textContent = d.liq_pool_above ? '$' + d.liq_pool_above.toFixed(2) : '—';
+  document.getElementById('liq-below').textContent = d.liq_pool_below ? '$' + d.liq_pool_below.toFixed(2) : '—';
+
+  // VPIN anomaly
+  if (vpin > 0.65) {
+    const reason = d.suppress_reason || `VPIN ${vpin.toFixed(4)} — Toxic flow detected`;
+    if (!anomalyLog.length || anomalyLog[0].msg !== reason) {
+      anomalyLog.unshift({ ts: new Date().toLocaleTimeString(), msg: reason, level: 'high' });
+      if (anomalyLog.length > 8) anomalyLog.pop();
+      renderAnomalyLog();
+    }
+  }
+
+  // Chart data
+  scoreHistory.push(score);
+  if (scoreHistory.length > 60) scoreHistory.shift();
+  const cvd = (d.vpin_history || []).slice(-1)[0] || 0;
+  cvdHistory.push(cvd);
+  if (cvdHistory.length > 60) cvdHistory.shift();
+  updateCharts();
+
+  // Control tab
+  document.getElementById('sys-radar').textContent   = d.suppressed ? '🔴 SUPPRESSED' : '🟢 ACTIVE';
+  document.getElementById('sys-mode').textContent    = d.account_mode || '—';
+}
+
+function renderAnomalyLog() {
+  const el = document.getElementById('anomaly-log');
+  if (!anomalyLog.length) { el.innerHTML = '<div style="color:var(--text3);font-size:12px">No anomalies detected</div>'; return; }
+  el.innerHTML = anomalyLog.map(a => `
+    <div class="anomaly-item">
+      <div class="anm-dot" style="background:${a.level==='high'?'var(--red)':'var(--gold)'}"></div>
+      <div>
+        <div style="margin-bottom:2px">${a.msg}</div>
+        <div class="anm-time">${a.ts}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── Positions update ── */
+async function pollPositions() {
+  const d = await GET('/api/trades/active');
+  if (!d) return;
+
+  const active  = d.active  || [];
+  const closed  = d.closed  || [];
+  const stats   = d.demo_stats || {};
+
+  document.getElementById('pos-count').textContent = active.length;
+  const mode = d.account_mode || 'DEMO';
+  document.getElementById('mode-demo').classList.toggle('active', mode === 'DEMO');
+  document.getElementById('mode-real').classList.toggle('active', mode === 'REAL');
+  currentMode = mode;
+
+  // Active positions
+  const posEl = document.getElementById('positions-list');
+  if (!active.length) {
+    posEl.innerHTML = '<div style="color:var(--text3);text-align:center;padding:20px;font-size:12px">No active positions</div>';
+  } else {
+    posEl.innerHTML = active.map(t => {
+      const isLong   = t.direction === 'LONG';
+      const pnl      = t.unrealized_pnl || 0;
+      const stateMap = { STATE_A_BREAKEVEN:'A', STATE_B_EXPLOSION:'B', STATE_C_EXHAUSTION:'C', ACTIVE:'ACT' };
+      const stateKey = stateMap[t.state] || 'ACT';
+      const entry    = t.entry || 0;
+      const sl       = t.dynamic_sl || 0;
+      const tp3      = t.tp3 || 0;
+      const range    = tp3 - entry || 1;
+      const progress = Math.max(0, Math.min(100, ((t.current_price - entry) / range) * 100)) * (isLong ? 1 : -1);
+      return `<div class="trade-item">
+        <div class="trade-top">
+          <div class="trade-sym">${t.symbol}</div>
+          <div class="pill ${isLong?'p-long':'p-short'}">${t.direction}</div>
+          <div class="trade-state-badge st-${stateKey}">STATE ${stateKey}</div>
+          <div style="margin-left:auto;font-size:12px;font-family:monospace;font-weight:700" class="${pnl>=0?'pnl-pos':'pnl-neg'}">
+            ${pnl>=0?'+':''}$${pnl.toFixed(2)}
+          </div>
+        </div>
+        <div class="metric-grid metric-3" style="margin-bottom:8px">
+          <div class="metric"><div class="metric-label">Entry</div><div class="metric-val" style="font-size:12px">$${(t.entry||0).toFixed(2)}</div></div>
+          <div class="metric"><div class="metric-label">Price</div><div class="metric-val" style="font-size:12px;color:var(--neon)">$${(t.current_price||0).toFixed(2)}</div></div>
+          <div class="metric"><div class="metric-label">Dyn. SL</div><div class="metric-val" style="font-size:12px;color:var(--red)">$${(t.dynamic_sl||0).toFixed(2)}</div></div>
+        </div>
+        <div class="trail-row">
+          <span style="color:var(--text3)">SL</span>
+          <div class="trail-bar">
+            <div class="trail-fill" style="width:100%"></div>
+            <div class="trail-cursor" style="left:${Math.max(5,Math.min(95,(sl/tp3)*100))}%"></div>
+          </div>
+          <span style="color:var(--text3)">TP3</span>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+          ${t.tp1_hit?'<span class="pill p-ok">TP1 ✓</span>':'<span class="pill p-flat">TP1</span>'}
+          ${t.tp2_hit?'<span class="pill p-ok">TP2 ✓</span>':'<span class="pill p-flat">TP2</span>'}
+          ${t.breakeven_locked?'<span class="pill p-neon">BE LOCKED</span>':''}
+          ${t.explosion_active?'<span class="pill p-gold">EXPLOSION 🚀</span>':''}
+          <button class="btn btn-d btn-sm" onclick="forceCloseOne('${t.trade_id}')" style="margin-left:auto">Close</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Closed trades
+  const closedEl = document.getElementById('closed-list');
+  if (!closed.length) {
+    closedEl.innerHTML = '<div style="color:var(--text3);text-align:center;padding:12px;font-size:12px">No history yet</div>';
+  } else {
+    closedEl.innerHTML = closed.slice(0, 8).map(t => {
+      const pnl = t.realized_pnl || 0;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div class="pill ${t.direction==='LONG'?'p-long':'p-short'}">${t.direction}</div>
+        <div style="flex:1;font-size:12px"><b>${t.symbol}</b> <span style="color:var(--text3);font-size:10px">${t.state}</span></div>
+        <div style="font-family:monospace;font-size:12px;font-weight:700" class="${pnl>=0?'pnl-pos':'pnl-neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Demo stats
+  updateDemoStats(stats);
+  document.getElementById('sys-positions').textContent = active.length;
+}
+
+/* ── Demo stats ── */
+function updateDemoStats(s) {
+  if (!s) return;
+  document.getElementById('demo-equity').textContent  = '$' + (s.demo_equity||10000).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pnl = s.demo_total_pnl || 0;
+  document.getElementById('demo-pnl-tag').textContent = (pnl>=0?'+':'') + '$' + pnl.toFixed(2) + ' total PnL';
+  document.getElementById('demo-pnl-tag').style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('d-balance').textContent  = '$' + (s.demo_balance||10000).toFixed(2);
+  document.getElementById('d-pnl').textContent      = (pnl>=0?'+':'') + '$' + pnl.toFixed(4);
+  document.getElementById('d-pnl').style.color      = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('d-wr').textContent       = (s.demo_win_rate||0).toFixed(1) + '%';
+  document.getElementById('d-trades').textContent   = s.demo_total_trades || 0;
+  document.getElementById('d-wl').textContent       = `${s.demo_wins||0} / ${s.demo_losses||0}`;
+  document.getElementById('d-dd').textContent       = (s.demo_max_drawdown||0).toFixed(2) + '%';
+  document.getElementById('d-active').textContent   = s.active_trades || 0;
+}
+
+/* ── Charts ── */
+function initCharts() {
+  if (cvdChart && scoreChart) return;
+  const opts = (label, color) => ({
+    type: 'line',
+    data: { labels: [], datasets:[{ label, data:[], borderColor:color, borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:color+'22', tension:0.3 }] },
+    options: { responsive:true, maintainAspectRatio:false, animation:{duration:0}, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5a80b0',font:{size:9}}} } }
+  });
+  const c1 = document.getElementById('cvd-canvas');
+  const c2 = document.getElementById('score-canvas');
+  if (c1) cvdChart   = new Chart(c1, opts('CVD', '#00f0ff'));
+  if (c2) scoreChart = new Chart(c2, opts('Score', '#7c3aff'));
+}
+
+function updateCharts() {
+  if (!cvdChart || !scoreChart) return;
+  const labels = scoreHistory.map((_,i) => i.toString());
+  cvdChart.data.labels   = labels;
+  cvdChart.data.datasets[0].data = cvdHistory;
+  cvdChart.update('none');
+  scoreChart.data.labels = labels;
+  scoreChart.data.datasets[0].data = scoreHistory;
+  scoreChart.update('none');
+}
+
+/* ── Account switch ── */
+async function switchMode(mode) {
+  const d = await POST('/api/account/switch', { mode });
+  if (d) {
+    currentMode = mode;
+    toast(`Switched to ${mode} mode`, mode === 'DEMO' ? 'var(--neon)' : 'var(--gold)');
+    document.getElementById('mode-demo').classList.toggle('active', mode === 'DEMO');
+    document.getElementById('mode-real').classList.toggle('active', mode === 'REAL');
+    document.getElementById('sys-mode').textContent = mode;
+  }
+}
+
+/* ── Control actions ── */
+async function setScoreOverride() {
+  const v = parseFloat(document.getElementById('score-input').value);
+  if (isNaN(v) || v < 0 || v > 100) { toast('Score must be 0–100', 'var(--red)'); return; }
+  await POST('/api/radar/control', { action:'set_score', score_override:v });
+  document.getElementById('sys-override').textContent = v.toString();
+  toast('Score override set to ' + v, 'var(--gold)');
+}
+
+async function clearOverride() {
+  await POST('/api/radar/control', { action:'unsuppress' });
+  document.getElementById('sys-override').textContent = 'None';
+  toast('Override cleared', 'var(--green)');
+}
+
+async function suppressRadar() {
+  await POST('/api/radar/control', { action:'suppress' });
+  toast('Radar SUPPRESSED', 'var(--red)');
+}
+
+async function unsuppressRadar() {
+  await POST('/api/radar/control', { action:'unsuppress' });
+  toast('Radar ENABLED', 'var(--green)');
+}
+
+async function forceCloseAll() {
+  if (!confirm('Force close ALL positions?')) return;
+  const d = await POST('/api/radar/control', { action:'force_close_all' });
+  toast(`Closed ${d?.closed||0} positions`, 'var(--red)');
+  pollPositions();
+}
+
+async function forceCloseOne(tid) {
+  const id = tid || document.getElementById('trade-id-input').value.trim();
+  if (!id) { toast('Enter trade ID', 'var(--gold)'); return; }
+  const d = await POST('/api/radar/control', { action:'force_close_one', trade_id:id });
+  if (d?.status === 'ok') { toast('Trade ' + id + ' closed', 'var(--neon)'); pollPositions(); }
+  else toast(d?.detail || 'Trade not found', 'var(--red)');
+}
+
+/* ── Polling loop ── */
+let pollCount = 0;
+async function mainPoll() {
+  pollCount++;
+  await pollRadar();
+  if (pollCount % 2 === 0) await pollPositions();
+}
+
+// Init
+initCharts();
+mainPoll();
+setInterval(mainPoll, 500);  // 2 Hz UI refresh
+</script>
+</body>
+</html>
