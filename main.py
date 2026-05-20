@@ -1,3 +1,4 @@
+from services.ai_agent import get_ai_solution
 from __future__ import annotations
 import asyncio
 import logging
@@ -17,6 +18,7 @@ from routers.telegram import router as tg_router
 from services.signals_service import signal_broadcaster
 from services.telegram_service import TG
 from hft.engine.startup import launch_hft_engine, shutdown_hft_engine
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s - %(message)s")
 log = logging.getLogger(__name__)
 settings = get_settings()
@@ -24,22 +26,29 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("WhaleX Prime Core v3 starting up")
-    create_tables()
-    db = SessionLocal()
     try:
-        seed_admin(db)
+        create_tables()
+        db = SessionLocal()
+        try:
+            seed_admin(db)
+        finally:
+            db.close()
+        asyncio.create_task(signal_broadcaster(), name="signal_broadcaster")
+        await launch_hft_engine()
+        await TG.setup()
+        asyncio.create_task(TG.run_queue_consumer(), name="tg_queue_consumer")
+        log.info("WhaleX Prime Core v3 ready - Telegram bridge active")
+        yield
+    except Exception as e:
+        error_msg = str(e)
+        log.critical(f"خطأ كارثي عند التشغيل: {error_msg}")
+        solution = get_ai_solution(error_msg)
+        log.error(f"تحليل كلاود للخطأ: {solution}")
     finally:
-        db.close()
-    asyncio.create_task(signal_broadcaster(), name="signal_broadcaster")
-    await launch_hft_engine()
-    await TG.setup()
-    asyncio.create_task(TG.run_queue_consumer(), name="tg_queue_consumer")
-    log.info("WhaleX Prime Core v3 ready - Telegram bridge active")
-    yield
-    log.info("Shutting down")
-    TG.stop()
-    await shutdown_hft_engine()
-    log.info("Shutdown complete")
+        log.info("Shutting down")
+        TG.stop()
+        await shutdown_hft_engine()
+        log.info("Shutdown complete")
 
 app = FastAPI(title="WhaleX Prime Core HFT", version="3.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
