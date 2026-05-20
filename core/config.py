@@ -1,6 +1,3 @@
-"""
-core/config.py — Centralised settings loaded from System Environment Variables.
-"""
 import os
 from pydantic_settings import BaseSettings
 from typing import List
@@ -8,7 +5,8 @@ from typing import List
 class Settings(BaseSettings):
     # ── LLM ──────────────────────────────────────────────────────────
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    ai_model: str = "claude-sonnet-4-20250514"
+    # تم تصحيح الموديل لاسم يعمل حالياً
+    ai_model: str = "claude-3-5-sonnet-20240620" 
     ai_max_tokens: int = 1000
 
     # ── Blockchain RPCs ──────────────────────────────────────────────
@@ -34,6 +32,8 @@ class Settings(BaseSettings):
     telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
     telegram_channel_id: str = os.getenv("TELEGRAM_CHANNEL_ID", "")
     telegram_admin_chat_id: str = os.getenv("TELEGRAM_ADMIN_CHAT_ID", "")
+    # أضفنا المتغير الناقص هنا
+    telegram_mini_app_url: str = os.getenv("TELEGRAM_MINI_APP_URL", "")
     
     eth_collector_wallet: str = os.getenv("ETH_COLLECTOR_WALLET", "")
     wallet_address: str = os.getenv("WALLET_ADDRESS", "")
