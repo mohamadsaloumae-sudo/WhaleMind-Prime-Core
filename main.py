@@ -1,6 +1,5 @@
 """
 main.py — WhaleX Prime Core v3 (HFT Edition)
-Uses contextlib.asynccontextmanager lifespan (FastAPI modern standard).
 """
 import asyncio
 import logging
@@ -8,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from core.config import get_settings
@@ -28,38 +28,23 @@ log      = logging.getLogger(__name__)
 settings = get_settings()
 
 
-# ── Lifespan (replaces deprecated @app.on_event) ─────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── STARTUP ──────────────────────────────────────────────────────────────
     log.info("WhaleX Prime Core v3 starting up…")
-
-    # 1. Database
     create_tables()
     db = SessionLocal()
     try:
         seed_admin(db)
     finally:
         db.close()
-
-    # 2. Background services
     asyncio.create_task(signal_broadcaster(), name="signal_broadcaster")
-
-    # 3. HFT Engine (Radar + Copilot + Demo + WS Ingestor)
     await launch_hft_engine()
-
     log.info("✅ WhaleX Prime Core v3 ready")
-
-    yield   # ← application runs here
-
-    # ── SHUTDOWN ─────────────────────────────────────────────────────────────
+    yield
     log.info("WhaleX Prime Core shutting down…")
     await shutdown_hft_engine()
     log.info("Shutdown complete")
 
-
-# ── Application factory ────────────────────────────────────────────────────────
 
 app = FastAPI(
     title       = "WhaleX Prime Core HFT",
@@ -87,12 +72,31 @@ app.include_router(wallet.router)
 app.include_router(admin_router)
 app.include_router(hft_router)
 
+# ── Root routes → Mini App ─────────────────────────────────────────────────────
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Root → Mini App (Telegram Bot opens this)"""
+    return RedirectResponse(url="/static/index.html", status_code=302)
+
+@app.get("/app", include_in_schema=False)
+async def app_route():
+    return RedirectResponse(url="/static/index.html", status_code=302)
+
+@app.get("/hft", include_in_schema=False)
+async def hft_route():
+    return RedirectResponse(url="/static/hft.html", status_code=302)
+
+@app.get("/admin", include_in_schema=False)
+async def admin_route():
+    return RedirectResponse(url="/admin-panel/", status_code=302)
+
 # ── Static files ───────────────────────────────────────────────────────────────
+# IMPORTANT: /static must come BEFORE /admin-panel
 app.mount("/static",      StaticFiles(directory="static"),                name="static")
-app.mount("/admin-panel", StaticFiles(directory="static/admin", html=True), name="admin")
+app.mount("/admin-panel", StaticFiles(directory="static/admin", html=True), name="admin_panel")
 
-
-# ── Health check ───────────────────────────────────────────────────────────────
+# ── Health ─────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["Health"])
 async def health():
     from hft.engine.context import GCM
@@ -103,5 +107,5 @@ async def health():
         "radar_regime":  GCM.radar.regime.value,
         "active_trades": len(GCM.active_trades),
         "account_mode":  GCM.current_mode.value,
-        "ws_clients":    len(GCM.tg_queue._queue) if hasattr(GCM.tg_queue, '_queue') else 0,
     }
+
